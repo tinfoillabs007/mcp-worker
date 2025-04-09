@@ -1,0 +1,44 @@
+# wrangler.toml (for mcp-worker)
+# Configuration for the MCP Resource Server Worker.
+
+name = "mcp-worker" # Unique name for the resource server worker
+main = "src/index.ts" # Entry point for the worker code
+compatibility_date = "2024-04-05" # Use a recent compatibility date
+
+# Account ID - Replace with your actual Cloudflare account ID
+# account_id = "<YOUR_CLOUDFLARE_ACCOUNT_ID>" # !!! IMPORTANT: REPLACE THIS !!!
+
+[[kv_namespaces]]
+binding = "MCP_VAULT_KV"
+id = "0cd8f74b1c9e4347897a24f1d718ee1e"
+# preview_id = "0cd8f74b1c9e4347897a24f1d718ee1e" # Add preview ID if needed for `wrangler dev`
+
+# Secrets - Set these using 'wrangler secret put <NAME>' in the mcp-worker directory
+# wrangler secret put AUTH_SERVER_URL # The public URL of your deployed auth-worker (e.g., https://auth-worker.your-subdomain.workers.dev)
+# wrangler secret put HANKO_API_URL # Add this secret for Hanko integration
+
+# Variables - Non-secret configuration
+[vars]
+AUTH_SERVER_URL = "http://localhost:8788" #Should be set via secret in production
+# HANKO_API_URL: Should be set via secret in production
+AUTH_WORKER_ORIGIN = "http://localhost:8788" # Origin of the auth-worker for postMessage target
+HANKO_API_URL = "https://77d5a9fe-53c9-4e73-9af7-f4defbc80295.hanko.io" # From auth-worker config
+OAUTH_SIGNING_KEY = "3e7960e6dab4174b3d4a3393e253316d753935c35872f54d292b146159904950"
+
+# Development server settings
+[dev]
+port = 8789 # Use a distinct port for local development
+local_protocol = "http"
+
+# Example Dev Vars (override secrets locally if needed, not recommended for real secrets)
+# Use .dev.vars file for local overrides instead of this section for clarity.
+[env.dev.vars]
+# AUTH_SERVER_URL = "http://localhost:8788" # Now redundant due to AUTH_WORKER_ORIGIN
+# HANKO_API_URL = "https://77d5a9fe-53c9-4e73-9af7-f4defbc80295.hanko.io" # MOVED TO [vars]
+
+# Optional: Build configuration if you need custom build steps
+# [build]
+# command = "npm run build"
+
+# Enable workers.dev route for easy deployment/testing
+workers_dev = true
