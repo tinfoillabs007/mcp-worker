@@ -299,6 +299,72 @@ app.post('/api/vault', async (c) => {
 });
 // --- End POST /api/vault Endpoint ---
 
+// --- Add GET /api/vault Endpoint ---
+app.get('/api/vault', async (c) => {
+    console.log("[MCP Worker /api/vault] GET request received.");
+
+    // UserID should be available from tokenIntrospectionMiddleware applied via app.use('/api/*', ...)
+    const userId = c.get('userId');
+    if (!userId) {
+        console.error("[MCP Worker /api/vault] No userId found in context. Middleware issue?");
+        return c.json({ error: 'unauthorized', message: 'Authentication context missing.' }, 401);
+    }
+
+    // Ensure MCP_VAULT_KV is configured
+    if (!c.env.MCP_VAULT_KV) {
+        console.error("[MCP Worker /api/vault] MCP_VAULT_KV binding not configured.");
+        return c.json({ error: 'server_error', message: 'Vault storage is not configured.' }, 500);
+    }
+
+    try {
+        const vaultKey = `user_profile:${userId}`;
+        console.log(`[MCP Worker /api/vault] Attempting to fetch vault data for key: ${vaultKey}`);
+        const data = await c.env.MCP_VAULT_KV.get(vaultKey, { type: 'json' });
+        
+        if (data) {
+            console.log(`[MCP Worker /api/vault] Found vault data for user ${userId}.`);
+            return c.json({ success: true, vaultData: data });
+        } else {
+            console.log(`[MCP Worker /api/vault] No vault data found for user ${userId}.`);
+            return c.json({ success: true, vaultData: {} }); // Return empty object if no data
+        }
+    } catch (error: any) {
+        console.error(`[MCP Worker /api/vault] Error fetching vault data:`, error);
+        return c.json({ error: 'server_error', message: 'Failed to fetch vault data.' }, 500);
+    }
+});
+// --- End GET /api/vault Endpoint ---
+
+// --- Add DELETE /api/vault Endpoint ---
+app.delete('/api/vault', async (c) => {
+    console.log("[MCP Worker /api/vault] DELETE request received.");
+
+    // UserID should be available from tokenIntrospectionMiddleware
+    const userId = c.get('userId');
+    if (!userId) {
+        console.error("[MCP Worker /api/vault DELETE] No userId found in context.");
+        return c.json({ error: 'unauthorized', message: 'Authentication context missing.' }, 401);
+    }
+
+    // Ensure MCP_VAULT_KV is configured
+    if (!c.env.MCP_VAULT_KV) {
+        console.error("[MCP Worker /api/vault DELETE] MCP_VAULT_KV binding not configured.");
+        return c.json({ error: 'server_error', message: 'Vault storage is not configured.' }, 500);
+    }
+
+    try {
+        const vaultKey = `user_profile:${userId}`;
+        console.log(`[MCP Worker /api/vault DELETE] Attempting to delete vault data for key: ${vaultKey}`);
+        await c.env.MCP_VAULT_KV.delete(vaultKey);
+        console.log(`[MCP Worker /api/vault DELETE] Successfully deleted vault data for user ${userId}.`);
+        return c.json({ success: true, message: "Vault data deleted successfully." });
+    } catch (error: any) {
+        console.error(`[MCP Worker /api/vault DELETE] Error deleting vault data:`, error);
+        return c.json({ error: 'server_error', message: 'Failed to delete vault data.' }, 500);
+    }
+});
+// --- End DELETE /api/vault Endpoint ---
+
 // Define the expected structure of the successful introspection response
 interface IntrospectionSuccessResponse {
   active: true;
